@@ -333,14 +333,33 @@ const formatLastSeen = (dateStr) => {
   if (!dateStr) return "Offline";
   const date = new Date(dateStr);
   const now = new Date();
-  const diff = Math.floor((now - date) / 60000); // in minutes
 
-  if (diff < 1) return "Last seen just now";
-  if (diff < 60) return `Last seen ${diff} min ago`;
-  return `Last seen at ${date.toLocaleTimeString([], {
-    hour: "2-digit",
-    minute: "2-digit",
-  })}`;
+  const diffMs = now - date;
+  const diffMin = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMin / 60);
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  if (diffMin < 1) return "just now";
+  if (diffMin < 60) return `${diffMin} min ago`;
+  if (diffHours < 24 && now.toDateString() === date.toDateString()) {
+    return `today at ${date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
+  }
+
+  if (diffDays === 1 || isYesterday(date, now)) {
+    return `yesterday at ${date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
+  }
+
+  return `on ${date.toLocaleDateString([], {
+    month: "short",
+    day: "numeric",
+  })} at ${date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
+};
+
+// Helper function
+const isYesterday = (d1, d2) => {
+  const yesterday = new Date(d2);
+  yesterday.setDate(d2.getDate() - 1);
+  return d1.toDateString() === yesterday.toDateString();
 };
 
 
