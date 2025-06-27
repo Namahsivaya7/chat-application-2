@@ -98,44 +98,92 @@
 
 // src/serviceWorkerRegistration.js
 
+// export function register(config) {
+//   if (process.env.NODE_ENV === 'production' && 'serviceWorker' in navigator) {
+//     const swUrl = `${process.env.PUBLIC_URL}/service-worker.js`;
+
+//     window.addEventListener('load', () => {
+//       registerValidSW(swUrl, config);
+//     });
+//   }
+// }
+
+// function registerValidSW(swUrl, config) {
+//   navigator.serviceWorker
+//     .register(swUrl)
+//     .then(registration => {
+//       registration.onupdatefound = () => {
+//         const installingWorker = registration.installing;
+//         if (!installingWorker) return;
+//         installingWorker.onstatechange = () => {
+//           if (installingWorker.state === 'installed') {
+//             if (navigator.serviceWorker.controller) {
+//               console.log('New content is available; please refresh.');
+//               if (config && config.onUpdate) config.onUpdate(registration);
+//             } else {
+//               console.log('Content is cached for offline use.');
+//               if (config && config.onSuccess) config.onSuccess(registration);
+//             }
+//           }
+//         };
+//       };
+//     })
+//     .catch(error => {
+//       console.error('Error during service worker registration:', error);
+//     });
+// }
+
+// export function unregister() {
+//   if ('serviceWorker' in navigator) {
+//     navigator.serviceWorker.ready.then(registration => {
+//       registration.unregister();
+//     });
+//   }
+// }
+
+
+
+
+
+// src/serviceWorkerRegistration.js
+
 export function register(config) {
   if (process.env.NODE_ENV === 'production' && 'serviceWorker' in navigator) {
     const swUrl = `${process.env.PUBLIC_URL}/service-worker.js`;
 
     window.addEventListener('load', () => {
-      registerValidSW(swUrl, config);
+      navigator.serviceWorker
+        .register(swUrl)
+        .then((registration) => {
+          console.log('✅ Service Worker registered:', registration);
+
+          registration.onupdatefound = () => {
+            const installingWorker = registration.installing;
+            if (!installingWorker) return;
+
+            installingWorker.onstatechange = () => {
+              if (installingWorker.state === 'installed') {
+                if (navigator.serviceWorker.controller) {
+                  console.log('🔄 New content available');
+                  if (config?.onUpdate) config.onUpdate(registration);
+                } else {
+                  console.log('📦 Content cached for offline use');
+                  if (config?.onSuccess) config.onSuccess(registration);
+                }
+              }
+            };
+          };
+        })
+        .catch((error) => {
+          console.error('❌ Error during SW registration:', error);
+        });
     });
   }
 }
 
-function registerValidSW(swUrl, config) {
-  navigator.serviceWorker
-    .register(swUrl)
-    .then(registration => {
-      registration.onupdatefound = () => {
-        const installingWorker = registration.installing;
-        if (!installingWorker) return;
-        installingWorker.onstatechange = () => {
-          if (installingWorker.state === 'installed') {
-            if (navigator.serviceWorker.controller) {
-              console.log('New content is available; please refresh.');
-              if (config && config.onUpdate) config.onUpdate(registration);
-            } else {
-              console.log('Content is cached for offline use.');
-              if (config && config.onSuccess) config.onSuccess(registration);
-            }
-          }
-        };
-      };
-    })
-    .catch(error => {
-      console.error('Error during service worker registration:', error);
-    });
-}
-
 export function unregister() {
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.ready.then(registration => {
+    navigator.serviceWorker.ready.then((registration) => {
       registration.unregister();
     });
   }
