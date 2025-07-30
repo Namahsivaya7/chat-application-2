@@ -166,7 +166,7 @@ button:hover {
 .messages{
   display: flex;
   flex-direction: column;
-  max-height: 200px;
+  max-height: 260px;
   overflow-y: auto;
   padding: 10px;
 }
@@ -242,5 +242,11 @@ button:hover {
   margin-left: 8px;
 }
 .user-list{
-  max-height: 300px;
+  max-height: 200px;
+  overflow: auto;
+}
+.user {
+  border-bottom: 1px  solid black !important;
+padding: 2px;
+cursor: pointer;
 }
