@@ -147,39 +147,50 @@
 
 // src/serviceWorkerRegistration.js
 
-export function register(config) {
-  if (process.env.NODE_ENV === 'production' && 'serviceWorker' in navigator) {
-    const swUrl = `${process.env.PUBLIC_URL}/service-worker.js`;
+// export function register(config) {
+//   if (process.env.NODE_ENV === 'production' && 'serviceWorker' in navigator) {
+//     const swUrl = `${process.env.PUBLIC_URL}/service-worker.js`;
 
+//     window.addEventListener('load', () => {
+//       navigator.serviceWorker
+//         .register(swUrl)
+//         .then((registration) => {
+//           console.log('✅ Service Worker registered:', registration);
+
+//           registration.onupdatefound = () => {
+//             const installingWorker = registration.installing;
+//             if (!installingWorker) return;
+
+//             installingWorker.onstatechange = () => {
+//               if (installingWorker.state === 'installed') {
+//                 if (navigator.serviceWorker.controller) {
+//                   console.log('🔄 New content available');
+//                   if (config?.onUpdate) config.onUpdate(registration);
+//                 } else {
+//                   console.log('📦 Content cached for offline use');
+//                   if (config?.onSuccess) config.onSuccess(registration);
+//                 }
+//               }
+//             };
+//           };
+//         })
+//         .catch((error) => {
+//           console.error('❌ Error during SW registration:', error);
+//         });
+//     });
+//   }
+// }
+export function register() {
+  if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
       navigator.serviceWorker
-        .register(swUrl)
-        .then((registration) => {
-          console.log('✅ Service Worker registered:', registration);
-
-          registration.onupdatefound = () => {
-            const installingWorker = registration.installing;
-            if (!installingWorker) return;
-
-            installingWorker.onstatechange = () => {
-              if (installingWorker.state === 'installed') {
-                if (navigator.serviceWorker.controller) {
-                  console.log('🔄 New content available');
-                  if (config?.onUpdate) config.onUpdate(registration);
-                } else {
-                  console.log('📦 Content cached for offline use');
-                  if (config?.onSuccess) config.onSuccess(registration);
-                }
-              }
-            };
-          };
-        })
-        .catch((error) => {
-          console.error('❌ Error during SW registration:', error);
-        });
+        .register('/service-worker.js')
+        .then(reg => console.log('✅ SW registered:', reg))
+        .catch(err => console.error('❌ SW error:', err));
     });
   }
 }
+
 
 export function unregister() {
   if ('serviceWorker' in navigator) {

@@ -166,7 +166,7 @@ button:hover {
 .messages{
   display: flex;
   flex-direction: column;
-  max-height: 400px;
+  max-height: 200px;
   overflow-y: auto;
   padding: 10px;
 }
@@ -228,6 +228,9 @@ button:hover {
     width: 60px;
     height: 30px;
   }
+  .messages{
+    max-height: 125px;
+  }
 }
 
 .badge {
@@ -237,4 +240,7 @@ button:hover {
   border-radius: 10px;
   font-size: 12px;
   margin-left: 8px;
+}
+.user-list{
+  max-height: 300px;
 }
