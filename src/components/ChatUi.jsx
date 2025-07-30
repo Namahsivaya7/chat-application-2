@@ -15,6 +15,7 @@ const socket = io('https://chat-application-server-m2ju.onrender.com')
 function ChatUi() {
   const [messages, setMessages] = useState([]);
   const [msg, setMsg] = useState('');
+ 
 
   const chatRef = useRef(null);
 

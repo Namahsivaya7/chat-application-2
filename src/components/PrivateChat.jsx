@@ -16,7 +16,7 @@ function PrivateChat() {
   const [activeChatUser, setActiveChatUser] = useState(null);
   const [message, setMessage] = useState("");
   const [chatMap, setChatMap] = useState({}); // { username: [{from, message, time, seen}] }
-  const [unreadCountMap, setUnreadCountMap] = useState({}); 
+  const [unreadCountMap, setUnreadCountMap] = useState({});
 
   const messagesEndRef = useRef(null);
   const navigate = useNavigate();
@@ -40,15 +40,14 @@ function PrivateChat() {
   // }, [loggedInUser]);
 
   useEffect(() => {
-  if (loggedInUser) {
-    if (!socket.connected) socket.connect(); // 🔁 Ensure it's connected
-    socket.emit("register_user_socket", { username: loggedInUser });
+    if (loggedInUser) {
+      if (!socket.connected) socket.connect(); // 🔁 Ensure it's connected
+      socket.emit("register_user_socket", { username: loggedInUser });
 
-    // fallback request
-    socket.emit("get_users", { username: loggedInUser });
-  }
-}, [loggedInUser]);
-
+      // fallback request
+      socket.emit("get_users", { username: loggedInUser });
+    }
+  }, [loggedInUser]);
 
   // ⏹️ Handle receiving message
   useEffect(() => {
@@ -63,14 +62,14 @@ function PrivateChat() {
       });
 
       if (from !== activeChatUser) {
-    setUnreadCountMap((prev) => ({
-      ...prev,
-      [from]: (prev[from] || 0) + 1,
-    }));
+        setUnreadCountMap((prev) => ({
+          ...prev,
+          [from]: (prev[from] || 0) + 1,
+        }));
 
-    //  Trigger browser notification
-    triggerBrowserNotification(from, message);
-  }
+        //  Trigger browser notification
+        triggerBrowserNotification(from, message);
+      }
 
       // if (!users.includes(from)) {
       //   setUsers((prev) => [...prev, from]);
@@ -93,27 +92,25 @@ function PrivateChat() {
     };
   }, [users, loggedInUser]);
 
+  // Auto mark messages as seen when chatting with active user
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (!activeChatUser || !chatMap[activeChatUser]) return;
 
-// Auto mark messages as seen when chatting with active user
-useEffect(() => {
-  const interval = setInterval(() => {
-    if (!activeChatUser || !chatMap[activeChatUser]) return;
+      const unseenMessagesExist = chatMap[activeChatUser].some(
+        (msg) => msg.from === activeChatUser && !msg.seen
+      );
 
-    const unseenMessagesExist = chatMap[activeChatUser].some(
-      (msg) => msg.from === activeChatUser && !msg.seen
-    );
+      if (unseenMessagesExist) {
+        socket.emit("message-seen", {
+          from: activeChatUser,
+          to: loggedInUser,
+        });
+      }
+    }, 2000); // every 2 seconds
 
-    if (unseenMessagesExist) {
-      socket.emit("message-seen", {
-        from: activeChatUser,
-        to: loggedInUser,
-      });
-    }
-  }, 2000); // every 2 seconds
-
-  return () => clearInterval(interval);
-}, [activeChatUser, chatMap, loggedInUser]);
-
+    return () => clearInterval(interval);
+  }, [activeChatUser, chatMap, loggedInUser]);
 
   // ⏹ Send Message
   const sendMessage = () => {
@@ -135,7 +132,10 @@ useEffect(() => {
       const prevChat = prev[activeChatUser] || [];
       return {
         ...prev,
-        [activeChatUser]: [...prevChat, { from: loggedInUser, message, time: timestamp, seen: false }],
+        [activeChatUser]: [
+          ...prevChat,
+          { from: loggedInUser, message, time: timestamp, seen: false },
+        ],
       };
     });
 
@@ -145,17 +145,17 @@ useEffect(() => {
 
     setMessage("");
   };
-useEffect(() => {
-  const username = localStorage.getItem("chat_username");
-  if (!username) {
-    navigate("/");
-  }
-}, []);
+  useEffect(() => {
+    const username = localStorage.getItem("chat_username");
+    if (!username) {
+      navigate("/");
+    }
+  }, []);
 
   const handleLogout = () => {
     const username = localStorage.getItem("chat_username");
-    if(username && socket.connected){
-      socket.emit("disconnect_user",{username})
+    if (username && socket.connected) {
+      socket.emit("disconnect_user", { username });
     }
 
     localStorage.removeItem("chat_username");
@@ -165,13 +165,16 @@ useEffect(() => {
   const handleUserClick = (user) => {
     setActiveChatUser(user);
 
-  setUnreadCountMap((prev) => ({
-    ...prev,
-    [user]: 0,
-  }));
+    setUnreadCountMap((prev) => ({
+      ...prev,
+      [user]: 0,
+    }));
 
-    axios.get(`https://chat-application-server-2.onrender.com/messages/${loggedInUser}/${user}`)
-    // axios.get(`http://localhost:5000/messages/${loggedInUser}/${user}`)
+    axios
+      .get(
+        `https://chat-application-server-2.onrender.com/messages/${loggedInUser}/${user}`
+      )
+      // axios.get(`http://localhost:5000/messages/${loggedInUser}/${user}`)
       .then((res) => {
         const history = res.data.map((msg) => ({
           from: msg.from,
@@ -195,194 +198,213 @@ useEffect(() => {
 
   const currentUser = localStorage.getItem("chat_username");
 
-    useEffect(() => {
-  if (Notification.permission !== "granted") {
-    Notification.requestPermission();
-  }
-}, []);
+  useEffect(() => {
+    if (Notification.permission !== "granted") {
+      Notification.requestPermission();
+    }
+  }, []);
 
-const triggerBrowserNotification = (sender, msg) => {
-  if (Notification.permission === "granted") {
-    new Notification(`New message from ${sender}`, {
-      body: msg,
-      // icon: "/chat-icon.png", // optional
-    });
-  }
-};
-
-// useEffect(() => {
-//   socket.on("user_list_update", (updatedUsers) => {
-//     const filtered = updatedUsers.filter((u) => u !== loggedInUser);
-//     setUsers(filtered);
-//   });
-
-//   return () => {
-//     socket.off("user_list_update");
-//   };
-// }, [loggedInUser]);
-
-useEffect(() => {
-  socket.on("user_list_update", (userArray) => {
-    // This now expects array of objects: { username, online }
-    const filtered = userArray
-      .filter((u) => u.username !== loggedInUser)
-        .map((u) => ({
-        username: u.username,
-        online: u.online,
-        lastSeen: u.lastSeen,
-        isInChatPage:u.isInChatPage
-      }));
-
-    setUsers(filtered);
-    console.log(" Updated user list received:", userArray);
-
-  });
-
-  return () => {
-    socket.off("user_list_update");
-  };
-}, [loggedInUser]);
-
-
-// useEffect(() => {
-//   if (loggedInUser) {
-//     socket.emit("register_user_socket", { username: loggedInUser });
-
-//     // fetch users as fallback
-//     socket.emit("get_users", { username: loggedInUser });
-//   }
-// }, [loggedInUser]);
-
-
-// ------------- ONE effect only – handles (re)connects too -------------
-useEffect(() => {
-  if (!loggedInUser) return;
-
-  // make sure we’re connected
-  if (!socket.connected) socket.connect();
-
-  /** after the websocket is really open we register & announce presence */
-  const onConnect = () => {
-    socket.emit("register_user_socket", { username: loggedInUser });
-    socket.emit("chat_page_enter",       { username: loggedInUser });
-    socket.emit("get_users",             { username: loggedInUser });
-   
-  };
-
-  // call immediately if already connected
-  if (socket.connected) onConnect();
-  // and every time the socket reconnects
-  socket.on("connect", onConnect);
-
-  return () => socket.off("connect", onConnect);   // cleanup
-}, [loggedInUser]);
-
-
-// useEffect(() => {
-//   const leaveHandler = () => {
-//     const username = localStorage.getItem("chat_username");
-//     if (username && socket.connected) {
-//       socket.emit("chat_page_leave", { username });
-//     }
-//   };
-
-//   window.addEventListener("beforeunload", leaveHandler);
-//   return () => {
-//     leaveHandler(); // call on unmount too
-//     window.removeEventListener("beforeunload", leaveHandler);
-//   };
-// }, []);
-
-
-// Tell server when user enters/leaves chat page
-useEffect(() => {
-  if (loggedInUser) {
-    socket.emit("chat_page_enter", { username: loggedInUser });
-  }
-
-  const handleLeave = () => {
-    if (loggedInUser) {
-      socket.emit("chat_page_leave", { username: loggedInUser });
+  const triggerBrowserNotification = (sender, msg) => {
+    if (Notification.permission === "granted") {
+      new Notification(`New message from ${sender}`, {
+        body: msg,
+        // icon: "/chat-icon.png", // optional
+      });
     }
   };
 
-  window.addEventListener("beforeunload", handleLeave);
-  return () => {
-    handleLeave();
-    window.removeEventListener("beforeunload", handleLeave);
-  };
-}, [loggedInUser]);
+  // useEffect(() => {
+  //   socket.on("user_list_update", (updatedUsers) => {
+  //     const filtered = updatedUsers.filter((u) => u !== loggedInUser);
+  //     setUsers(filtered);
+  //   });
+
+  //   return () => {
+  //     socket.off("user_list_update");
+  //   };
+  // }, [loggedInUser]);
+
+  useEffect(() => {
+    socket.on("user_list_update", (userArray) => {
+      // This now expects array of objects: { username, online }
+      const filtered = userArray
+        .filter((u) => u.username !== loggedInUser)
+        .map((u) => ({
+          username: u.username,
+          online: u.online,
+          lastSeen: u.lastSeen,
+          isInChatPage: u.isInChatPage,
+        }));
+
+      setUsers(filtered);
+      // console.log(" Updated user list received:", userArray);
+    });
+
+    return () => {
+      socket.off("user_list_update");
+    };
+  }, [loggedInUser]);
+
+  // useEffect(() => {
+  //   if (loggedInUser) {
+  //     socket.emit("register_user_socket", { username: loggedInUser });
+
+  //     // fetch users as fallback
+  //     socket.emit("get_users", { username: loggedInUser });
+  //   }
+  // }, [loggedInUser]);
+
+  // ------------- ONE effect only – handles (re)connects too -------------
+  useEffect(() => {
+    if (!loggedInUser) return;
+
+    // make sure we’re connected
+    if (!socket.connected) socket.connect();
+
+    /** after the websocket is really open we register & announce presence */
+    const onConnect = () => {
+      socket.emit("register_user_socket", { username: loggedInUser });
+      socket.emit("chat_page_enter", { username: loggedInUser });
+      socket.emit("get_users", { username: loggedInUser });
+    };
+
+    // call immediately if already connected
+    if (socket.connected) onConnect();
+    // and every time the socket reconnects
+    socket.on("connect", onConnect);
+
+    return () => socket.off("connect", onConnect); // cleanup
+  }, [loggedInUser]);
+
+  // useEffect(() => {
+  //   const leaveHandler = () => {
+  //     const username = localStorage.getItem("chat_username");
+  //     if (username && socket.connected) {
+  //       socket.emit("chat_page_leave", { username });
+  //     }
+  //   };
+
+  //   window.addEventListener("beforeunload", leaveHandler);
+  //   return () => {
+  //     leaveHandler(); // call on unmount too
+  //     window.removeEventListener("beforeunload", leaveHandler);
+  //   };
+  // }, []);
+
+  // Tell server when user enters/leaves chat page
+  useEffect(() => {
+    if (loggedInUser) {
+      socket.emit("chat_page_enter", { username: loggedInUser });
+    }
+
+    const handleLeave = () => {
+      if (loggedInUser) {
+        socket.emit("chat_page_leave", { username: loggedInUser });
+      }
+    };
+
+    window.addEventListener("beforeunload", handleLeave);
+    return () => {
+      handleLeave();
+      window.removeEventListener("beforeunload", handleLeave);
+    };
+  }, [loggedInUser]);
 
   return (
     <div className="chat-container">
       <div className="user-list">
-        <div style={{ display: "flex", justifyContent: "space-between" }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            position: "sticky",
+            top: 0,
+            background: "#fff",
+            padding:"10px"
+          }}
+        >
           <h3>Users</h3>
           Logged in as: {currentUser}
           <button className="logout-button" onClick={handleLogout}>
             Logout
           </button>
         </div>
-        {console.log(users)}
+        {/* {console.log(users)} */}
         {/* {users.forEach(u => console.log("User:", u.username, "Online:", u.online))} */}
         {users?.map((userObj) => {
-  const { username, online, lastSeen, isInChatPage } = userObj;
+          const { username, online, lastSeen, isInChatPage } = userObj;
 
-const formatLastSeen = (dateStr) => {
-  if (!dateStr) return "Offline";
+          const formatLastSeen = (dateStr) => {
+            if (!dateStr) return "Offline";
 
-  const date = new Date(dateStr);
-  const now = new Date();
+            const date = new Date(dateStr);
+            const now = new Date();
 
-  const isToday = date.toDateString() === now.toDateString();
-  const isYesterday = new Date(now.getTime() - 86400000).toDateString() === date.toDateString();
+            const isToday = date.toDateString() === now.toDateString();
+            const isYesterday =
+              new Date(now.getTime() - 86400000).toDateString() ===
+              date.toDateString();
 
-  if (isToday) {
-    const diff = Math.floor((now - date) / 60000);
-    if (diff < 1) return "Last seen just now";
-    if (diff < 60) return `Last seen ${diff} min ago`;
-    return `Last seen today at ${date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
-  }
+            if (isToday) {
+              const diff = Math.floor((now - date) / 60000);
+              if (diff < 1) return "Last seen just now";
+              if (diff < 60) return `Last seen ${diff} min ago`;
+              return `Last seen today at ${date.toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}`;
+            }
 
-  if (isYesterday) {
-    return `Last seen yesterday at ${date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
-  }
+            if (isYesterday) {
+              return `Last seen yesterday at ${date.toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}`;
+            }
 
-  return `Last seen on ${date.toLocaleDateString()} at ${date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
-};
+            return `Last seen on ${date.toLocaleDateString()} at ${date.toLocaleTimeString(
+              [],
+              { hour: "2-digit", minute: "2-digit" }
+            )}`;
+          };
 
+          let statusDisplay;
+          if (online && isInChatPage) {
+            statusDisplay = <span style={{ color: "green" }}>● Online</span>;
+          } else if (lastSeen) {
+            statusDisplay = (
+              <span style={{ fontSize: "12px", color: "gray" }}>
+                {formatLastSeen(lastSeen)}
+              </span>
+            );
+            // } else if (!online && lastSeen) {
+            // statusDisplay = (
+            //   <span style={{ fontSize: "12px", color: "gray" }}>
+            //     Last seen {formatLastSeen(lastSeen)}
+            //   </span>
+            // );
+          } else {
+            statusDisplay = (
+              <span style={{ fontSize: "12px", color: "gray" }}>Offline</span>
+            );
+          }
 
-  let statusDisplay;
-if (online && isInChatPage) {
-  statusDisplay = <span style={{ color: "green" }}>● Online</span>;
-} else if ( lastSeen) {
-  statusDisplay = (
-    <span style={{ fontSize: "12px", color: "gray" }}>
-      {formatLastSeen(lastSeen)}
-    </span>
-  );
-  // } else if (!online && lastSeen) {
-  // statusDisplay = (
-  //   <span style={{ fontSize: "12px", color: "gray" }}>
-  //     Last seen {formatLastSeen(lastSeen)}
-  //   </span>
-  // );
-} else {
-  statusDisplay = <span style={{ fontSize: "12px", color: "gray" }}>Offline</span>;
-}
+          // console.log("User:", username, "Online:", online,"last seen: ", lastSeen ? formatLastSeen(lastSeen):"");
 
-
-  console.log("User:", username, "Online:", online,"last seen: ", lastSeen ? formatLastSeen(lastSeen):"");
-
-  return (
-    <div
-      key={username}
-      className={`user ${username === activeChatUser ? "active" : ""}`}
-      onClick={() => handleUserClick(username)}
-      style={{display:"flex",alignItems:"center",gap:5,margin:"5px auto"}}
-    >
-      {username}{" "}
-      {/* <span
+          return (
+            <div
+              key={username}
+              className={`user ${username === activeChatUser ? "active" : ""}`}
+              onClick={() => handleUserClick(username)}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 5,
+                margin: "5px auto",
+              }}
+            >
+              {username}{" "}
+              {/* <span
         style={{
           color: online ? "green" : "gray",
           fontSize: "16px",
@@ -391,8 +413,7 @@ if (online && isInChatPage) {
       >
         {online ? "●" : ""}
       </span> */}
-
-       {/* <div style={{ fontSize: "12px", color: "gray" }}>
+              {/* <div style={{ fontSize: "12px", color: "gray" }}>
           {online ? (
             <span style={{ color: "green" }}>● Online</span>
           ) : lastSeen ? (
@@ -401,14 +422,15 @@ if (online && isInChatPage) {
             "Offline"
           )}
         </div> */}
-        <div style={{ fontSize: "14px", marginLeft: "auto" }}>{statusDisplay}</div>
-      {unreadCountMap[username] > 0 && username !== activeChatUser && (
-        <span className="badge">{unreadCountMap[username]}</span>
-      )}
-    </div>
-  );
-})}
-
+              <div style={{ fontSize: "14px", marginLeft: "auto" }}>
+                {statusDisplay}
+              </div>
+              {unreadCountMap[username] > 0 && username !== activeChatUser && (
+                <span className="badge">{unreadCountMap[username]}</span>
+              )}
+            </div>
+          );
+        })}
       </div>
 
       <div>
@@ -421,13 +443,20 @@ if (online && isInChatPage) {
             <div
               // key={i}
               key={`${msg.from}-${msg.time}-${i}`}
-              className={`chat-message ${msg.from === currentUser ? "sent" : "received"}`}
+              className={`chat-message ${
+                msg.from === currentUser ? "sent" : "received"
+              }`}
             >
               <div>{msg.message}</div>
               <div className="msg-time">
                 {msg.time}{" "}
                 {msg.from === currentUser ? (
-                  <span style={{ fontSize: "10px", color: msg.seen ? "green" : "gray" }}>
+                  <span
+                    style={{
+                      fontSize: "10px",
+                      color: msg.seen ? "green" : "gray",
+                    }}
+                  >
                     {msg.seen ? "Seen" : "Sent"}
                   </span>
                 ) : null}
