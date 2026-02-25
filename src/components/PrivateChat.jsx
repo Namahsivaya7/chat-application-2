@@ -118,7 +118,7 @@ function PrivateChat() {
       socket.off("receive_private_message");
       socket.off("message-seen-update");
     };
-  }, [users, loggedInUser]);
+  }, [users, loggedInUser, activeChatUser]);
 
   // Auto mark messages as seen when chatting with active user
   useEffect(() => {
@@ -177,7 +177,7 @@ function PrivateChat() {
     if (!username) {
       navigate("/");
     }
-  }, []);
+  }, [navigate]);
 
   const handleLogout = () => {
     const username = localStorage.getItem("chat_username");
