@@ -1,21 +1,49 @@
 // added messages seen functioning
 
 import { useState, useEffect, useRef } from "react";
-import io from "socket.io-client";
 import axios from "axios";
 import "../App.css";
 import { useNavigate } from "react-router-dom";
 import socket from "../socket";
 
-// const socket = io("https://chat-application-server-m2ju.onrender.com");
-// const socket = io("http://localhost:5000");
+const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+const getDateLabel = (dateStr) => {
+  if (!dateStr) return null;
+  
+  const now = new Date();
+  const msgDate = new Date(dateStr);
+  
+  if (isNaN(msgDate.getTime())) return null;
+  
+  const isToday = msgDate.toDateString() === now.toDateString();
+  const isYesterday = new Date(now.getTime() - 86400000).toDateString() === msgDate.toDateString();
+  const isThisYear = msgDate.getFullYear() === now.getFullYear();
+  
+  if (isToday) return "Today";
+  if (isYesterday) return "Yesterday";
+  
+  const day = msgDate.getDate();
+  const month = MONTH_NAMES[msgDate.getMonth()];
+  
+  if (isThisYear) return `${day} ${month}`;
+  
+  return `${day} ${month} ${msgDate.getFullYear()}`;
+};
+
+const getDateKey = (dateStr) => {
+  if (!dateStr) return null;
+  const msgDate = new Date(dateStr);
+  if (isNaN(msgDate.getTime())) return null;
+  return msgDate.toDateString();
+};
 
 function PrivateChat() {
   const loggedInUser = localStorage.getItem("chat_username");
   const [users, setUsers] = useState([]);
   const [activeChatUser, setActiveChatUser] = useState(null);
   const [message, setMessage] = useState("");
-  const [chatMap, setChatMap] = useState({}); // { username: [{from, message, time, seen}] }
+  const [chatMap, setChatMap] = useState({}); // { username: [{from, message, time, seen, date}] }
   const [unreadCountMap, setUnreadCountMap] = useState({});
 
   const messagesEndRef = useRef(null);
@@ -52,12 +80,12 @@ function PrivateChat() {
   // ⏹️ Handle receiving message
   useEffect(() => {
     socket.on("receive_private_message", (data) => {
-      const { from, message, time } = data;
+      const { from, message, time, date } = data;
       setChatMap((prev) => {
         const prevChat = prev[from] || [];
         return {
           ...prev,
-          [from]: [...prevChat, { from, message, time, seen: false }],
+          [from]: [...prevChat, { from, message, time, date: date || new Date().toISOString(), seen: false }],
         };
       });
 
@@ -116,16 +144,19 @@ function PrivateChat() {
   const sendMessage = () => {
     if (!activeChatUser || !message) return;
 
-    const timestamp = new Date().toLocaleTimeString([], {
+    const now = new Date();
+    const timestamp = now.toLocaleTimeString([], {
       hour: "2-digit",
       minute: "2-digit",
     });
+    const dateISO = now.toISOString();
 
     socket.emit("send_private_message", {
       toUserId: activeChatUser,
       from: loggedInUser,
       message,
       time: timestamp,
+      date: dateISO,
     });
 
     setChatMap((prev) => {
@@ -134,14 +165,10 @@ function PrivateChat() {
         ...prev,
         [activeChatUser]: [
           ...prevChat,
-          { from: loggedInUser, message, time: timestamp, seen: false },
+          { from: loggedInUser, message, time: timestamp, date: dateISO, seen: false },
         ],
       };
     });
-
-    // if (!users.includes(activeChatUser)) {
-    //   setUsers((prev) => [...prev, activeChatUser]);
-    // }
 
     setMessage("");
   };
@@ -174,12 +201,12 @@ function PrivateChat() {
       .get(
         `https://chat-application-server-2.onrender.com/messages/${loggedInUser}/${user}`
       )
-      // axios.get(`http://localhost:5000/messages/${loggedInUser}/${user}`)
       .then((res) => {
         const history = res.data.map((msg) => ({
           from: msg.from,
           message: msg.message,
           time: msg.time,
+          date: msg.date || msg.createdAt || null,
           seen: msg.seen || false,
         }));
 
@@ -439,30 +466,41 @@ function PrivateChat() {
 
       <div className="chat-box">
         <div className="messages">
-          {(chatMap[activeChatUser] || []).map((msg, i) => (
-            <div
-              // key={i}
-              key={`${msg.from}-${msg.time}-${i}`}
-              className={`chat-message ${
-                msg.from === currentUser ? "sent" : "received"
-              }`}
-            >
-              <div>{msg.message}</div>
-              <div className="msg-time">
-                {msg.time}{" "}
-                {msg.from === currentUser ? (
-                  <span
-                    style={{
-                      fontSize: "10px",
-                      color: msg.seen ? "green" : "gray",
-                    }}
-                  >
-                    {msg.seen ? "Seen" : "Sent"}
-                  </span>
-                ) : null}
+          {(chatMap[activeChatUser] || []).map((msg, i, arr) => {
+            const currentDateKey = getDateKey(msg.date);
+            const prevDateKey = i > 0 ? getDateKey(arr[i - 1].date) : null;
+            const showDateSeparator = currentDateKey && currentDateKey !== prevDateKey;
+            
+            return (
+              <div key={`${msg.from}-${msg.time}-${i}`}>
+                {showDateSeparator && (
+                  <div className="date-separator">
+                    <span>{getDateLabel(msg.date)}</span>
+                  </div>
+                )}
+                <div
+                  className={`chat-message ${
+                    msg.from === currentUser ? "sent" : "received"
+                  }`}
+                >
+                  <div>{msg.message}</div>
+                  <div className="msg-time">
+                    {msg.time}{" "}
+                    {msg.from === currentUser ? (
+                      <span
+                        style={{
+                          fontSize: "10px",
+                          color: msg.seen ? "green" : "gray",
+                        }}
+                      >
+                        {msg.seen ? "Seen" : "Sent"}
+                      </span>
+                    ) : null}
+                  </div>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
           <div ref={messagesEndRef} />
         </div>
 

@@ -71,11 +71,13 @@ h2 {
 }
 
 .input-area {
-  bottom: 5%;
   display: flex;
   gap: 8px;
-  width: 90%;
-  position: fixed;
+  width: 100%;
+  padding: 10px;
+  background: #f9f9f9;
+  border-top: 1px solid #ddd;
+  box-sizing: border-box;
 }
 
 input {
@@ -133,10 +135,10 @@ button:hover {
 .chat-box {
   display: flex;
   flex-direction: column;
-  padding: 10px;
-  max-height: 400px;
-  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
   background-color: #f9f9f9;
+  overflow: hidden;
 }
 
 .chat-message {
@@ -164,9 +166,10 @@ button:hover {
 .messages {
   display: flex;
   flex-direction: column;
-  max-height: 260px;
+  flex: 1;
   overflow-y: auto;
   padding: 10px;
+  padding-bottom: 20px;
 }
 .logout-button {
   width: 70px;
@@ -182,20 +185,29 @@ button:hover {
   text-align: right;
 }
 
+.date-separator {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 15px 0;
+}
+
+.date-separator span {
+  background-color: #e1e1e1;
+  color: #555;
+  font-size: 12px;
+  padding: 5px 12px;
+  border-radius: 8px;
+}
+
 /* Responsive layout */
 @media (max-width: 768px) {
-  .chat-box {
-    max-height: 65vh;
-    padding: 8px;
-  }
-
   .chat-message {
     max-width: 90%;
     font-size: 13px;
   }
 
   .input-area {
-    /* flex-direction: column; */
     gap: 6px;
   }
   .logout-button {
@@ -205,10 +217,6 @@ button:hover {
 }
 
 @media (max-width: 480px) {
-  .chat-box {
-    max-height: 70vh;
-  }
-
   .chat-message {
     font-size: 12px;
     padding: 6px 10px;
@@ -216,7 +224,6 @@ button:hover {
 
   .input-area input {
     font-size: 13px;
-    width: 90%;
   }
 
   .input-area button {
@@ -225,9 +232,6 @@ button:hover {
   .logout-button {
     width: 60px;
     height: 30px;
-  }
-  .messages {
-    max-height: 125px;
   }
 }
 
@@ -250,4 +254,12 @@ button:hover {
 }
 .user:hover {
   color: #357bd8;
+}
+
+.chat-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  max-height: 100vh;
+  overflow: hidden;
 }
