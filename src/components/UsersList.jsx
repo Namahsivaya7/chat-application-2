@@ -1,8 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import "../App.css";
 import socket from "../socket";
 import VideoCall from "./VideoCall";
+
+const RINGTONE_URL = "https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3";
 
 function UsersList() {
   const loggedInUser = localStorage.getItem("chat_username");
@@ -10,6 +12,7 @@ function UsersList() {
   const [unreadCountMap, setUnreadCountMap] = useState({});
   const [incomingCall, setIncomingCall] = useState(null);
   const navigate = useNavigate();
+  const ringtoneRef = useRef(null);
 
   useEffect(() => {
     const username = localStorage.getItem("chat_username");
@@ -93,16 +96,41 @@ function UsersList() {
   useEffect(() => {
     const handleIncomingCall = (data) => {
       setIncomingCall(data);
+      
+      // Play ringtone
+      if (ringtoneRef.current) {
+        ringtoneRef.current.pause();
+      }
+      ringtoneRef.current = new Audio(RINGTONE_URL);
+      ringtoneRef.current.loop = true;
+      ringtoneRef.current.volume = 0.7;
+      ringtoneRef.current.play().catch(() => {});
     };
 
     socket.on("video_call_offer", handleIncomingCall);
 
     return () => {
       socket.off("video_call_offer", handleIncomingCall);
+      if (ringtoneRef.current) {
+        ringtoneRef.current.pause();
+        ringtoneRef.current = null;
+      }
     };
   }, []);
 
+  // Stop ringtone when call is closed
+  useEffect(() => {
+    if (!incomingCall && ringtoneRef.current) {
+      ringtoneRef.current.pause();
+      ringtoneRef.current = null;
+    }
+  }, [incomingCall]);
+
   const closeVideoCall = () => {
+    if (ringtoneRef.current) {
+      ringtoneRef.current.pause();
+      ringtoneRef.current = null;
+    }
     setIncomingCall(null);
   };
 

@@ -6,6 +6,8 @@ import socket from "../socket";
 import VideoCall from "./VideoCall";
 import { Video } from "lucide-react";
 
+const RINGTONE_URL = "https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3";
+
 const MONTH_NAMES = [
   "Jan",
   "Feb",
@@ -68,9 +70,22 @@ function ChatRoom() {
   });
   const [showVideoCall, setShowVideoCall] = useState(false);
   const [incomingCall, setIncomingCall] = useState(null);
+  const [, setTick] = useState(0);
 
   const messagesEndRef = useRef(null);
   const navigate = useNavigate();
+  const ringtoneRef = useRef(null);
+
+  // Update "last seen" display every minute
+  useEffect(() => {
+    if (userStatus.online || !userStatus.lastSeen) return;
+    
+    const interval = setInterval(() => {
+      setTick(t => t + 1);
+    }, 60000);
+
+    return () => clearInterval(interval);
+  }, [userStatus.online, userStatus.lastSeen]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -253,9 +268,20 @@ function ChatRoom() {
             };
           }
 
+          // If user is offline, always use server's lastSeen if available
+          if (!isOnline) {
+            return {
+              online: false,
+              lastSeen: user.lastSeen || prev.lastSeen,
+              loading: false,
+              isChattingWithMe: false,
+            };
+          }
+
+          // User is online
           return {
-            online: isOnline,
-            lastSeen: user.lastSeen || prev.lastSeen,
+            online: true,
+            lastSeen: prev.lastSeen,
             loading: false,
             isChattingWithMe: isChattingWithMe,
           };
@@ -385,14 +411,35 @@ function ChatRoom() {
     const handleIncomingCall = (data) => {
       // Accept calls from any user, not just the one you're chatting with
       setIncomingCall(data);
+      
+      // Play ringtone
+      if (ringtoneRef.current) {
+        ringtoneRef.current.pause();
+      }
+      ringtoneRef.current = new Audio(RINGTONE_URL);
+      ringtoneRef.current.loop = true;
+      ringtoneRef.current.volume = 1.0;
+      ringtoneRef.current.play().catch(() => {});
     };
 
     socket.on("video_call_offer", handleIncomingCall);
 
     return () => {
       socket.off("video_call_offer", handleIncomingCall);
+      if (ringtoneRef.current) {
+        ringtoneRef.current.pause();
+        ringtoneRef.current = null;
+      }
     };
   }, []);
+
+  // Stop ringtone when call is closed
+  useEffect(() => {
+    if (!incomingCall && ringtoneRef.current) {
+      ringtoneRef.current.pause();
+      ringtoneRef.current = null;
+    }
+  }, [incomingCall]);
 
   const startVideoCall = () => {
     if (!userStatus.online) {
@@ -403,6 +450,10 @@ function ChatRoom() {
   };
 
   const closeVideoCall = () => {
+    if (ringtoneRef.current) {
+      ringtoneRef.current.pause();
+      ringtoneRef.current = null;
+    }
     setShowVideoCall(false);
     setIncomingCall(null);
   };
