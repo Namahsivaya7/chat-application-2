@@ -58,6 +58,8 @@ function ChatRoom() {
   const loggedInUser = localStorage.getItem("chat_username");
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [socketConnected, setSocketConnected] = useState(socket.connected);
   const [userStatus, setUserStatus] = useState({
     online: false,
     lastSeen: null,
@@ -78,6 +80,7 @@ function ChatRoom() {
     scrollToBottom();
   }, [messages]);
 
+  // Check authentication
   useEffect(() => {
     const username = localStorage.getItem("chat_username");
     if (!username) {
@@ -86,15 +89,38 @@ function ChatRoom() {
     }
     if (!chatUser) {
       navigate("/users");
+      return;
     }
   }, [navigate, chatUser]);
 
+  // Connect socket and wait for connection
   useEffect(() => {
-    if (loggedInUser) {
-      if (!socket.connected) socket.connect();
+    if (!loggedInUser || !chatUser) return;
+
+    const handleConnect = () => {
+      setSocketConnected(true);
       socket.emit("register_user_socket", { username: loggedInUser });
+      setIsLoading(false);
+    };
+
+    const handleDisconnect = () => {
+      setSocketConnected(false);
+    };
+
+    if (socket.connected) {
+      handleConnect();
+    } else {
+      socket.connect();
     }
-  }, [loggedInUser]);
+
+    socket.on("connect", handleConnect);
+    socket.on("disconnect", handleDisconnect);
+
+    return () => {
+      socket.off("connect", handleConnect);
+      socket.off("disconnect", handleDisconnect);
+    };
+  }, [loggedInUser, chatUser]);
 
   // Emit when entering/leaving chat with specific user
   useEffect(() => {
@@ -380,6 +406,29 @@ function ChatRoom() {
     setShowVideoCall(false);
     setIncomingCall(null);
   };
+
+  if (!loggedInUser || !chatUser) {
+    return null;
+  }
+
+  if (isLoading || !socketConnected) {
+    return (
+      <div className="chatroom-container">
+        <div style={{ 
+          display: "flex", 
+          flexDirection: "column",
+          justifyContent: "center", 
+          alignItems: "center", 
+          height: "100%",
+          color: "#666",
+          gap: "10px"
+        }}>
+          <div className="loading-spinner"></div>
+          <span>{socketConnected ? "Loading chat..." : "Connecting..."}</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="chatroom-container">
