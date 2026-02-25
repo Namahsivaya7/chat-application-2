@@ -263,3 +263,376 @@ button:hover {
   max-height: 100vh;
   overflow: hidden;
 }
+
+/* Users List Page Styles */
+.users-page {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  max-height: 100vh;
+  background: #fff;
+}
+
+.users-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+  background: #4a90e2;
+  color: white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.users-header h2 {
+  margin: 0;
+  color: white;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  font-size: 14px;
+}
+
+.users-list-container {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px 0;
+}
+
+.user-item {
+  display: flex;
+  align-items: center;
+  padding: 12px 20px;
+  cursor: pointer;
+  border-bottom: 1px solid #f0f0f0;
+  transition: background 0.2s;
+}
+
+.user-item:hover {
+  background: #f5f5f5;
+}
+
+.user-avatar {
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  background: #4a90e2;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: bold;
+  margin-right: 15px;
+}
+
+.user-details {
+  flex: 1;
+}
+
+.user-name {
+  font-weight: 500;
+  font-size: 16px;
+  color: #333;
+}
+
+.user-status {
+  font-size: 13px;
+  color: #888;
+  margin-top: 2px;
+}
+
+/* ChatRoom Page Styles */
+.chatroom-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  max-height: 100vh;
+  background: #e5ddd5;
+}
+
+.chatroom-header {
+  display: flex;
+  align-items: center;
+  padding: 10px 15px;
+  background: #4a90e2;
+  color: white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.back-button {
+  background: transparent;
+  border: none;
+  color: white;
+  font-size: 24px;
+  padding: 5px 15px 5px 5px;
+  cursor: pointer;
+  margin-right: 10px;
+}
+
+.back-button:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+}
+
+.chatroom-user-info {
+  flex: 1;
+}
+
+.chatroom-username {
+  font-size: 18px;
+  font-weight: 500;
+}
+
+.chatroom-status {
+  font-size: 13px;
+  opacity: 0.9;
+}
+
+.chatroom-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px 15px;
+  display: flex;
+  flex-direction: column;
+}
+
+.chatroom-input {
+  display: flex;
+  gap: 10px;
+  padding: 10px 15px;
+  background: #f0f0f0;
+  border-top: 1px solid #ddd;
+}
+
+.chatroom-input input {
+  flex: 1;
+  padding: 12px 15px;
+  border: none;
+  border-radius: 20px;
+  font-size: 15px;
+  outline: none;
+}
+
+.chatroom-input button {
+  padding: 10px 20px;
+  border-radius: 20px;
+  background: #4a90e2;
+  color: white;
+  border: none;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.chatroom-input button:hover {
+  background: #357bd8;
+}
+
+/* Mobile responsive for new pages */
+@media (max-width: 480px) {
+  .users-header {
+    padding: 12px 15px;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .user-info {
+    font-size: 12px;
+    gap: 10px;
+  }
+
+  .user-item {
+    padding: 10px 15px;
+  }
+
+  .user-avatar {
+    width: 40px;
+    height: 40px;
+    font-size: 16px;
+  }
+
+  .chatroom-header {
+    padding: 8px 10px;
+  }
+
+  .chatroom-username {
+    font-size: 16px;
+  }
+
+  .chatroom-input {
+    padding: 8px 10px;
+  }
+
+  .chatroom-input input {
+    padding: 10px 12px;
+    font-size: 14px;
+  }
+
+  .chatroom-input button {
+    padding: 10px 15px;
+    font-size: 14px;
+  }
+}
+
+/* Video Call Button */
+.video-call-button {
+  background: transparent;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 50%;
+  transition: background 0.2s;
+}
+
+.video-call-button:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Video Call Overlay */
+.video-call-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.95);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.video-call-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  max-width: 1200px;
+}
+
+.video-call-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+  color: white;
+  font-size: 18px;
+}
+
+.call-status {
+  font-size: 14px;
+  color: #aaa;
+}
+
+.video-streams {
+  flex: 1;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #1a1a1a;
+}
+
+.remote-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: #333;
+}
+
+.local-video {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  width: 150px;
+  height: 120px;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 2px solid white;
+  background: #333;
+}
+
+.call-actions {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.8);
+}
+
+.incoming-actions {
+  gap: 40px;
+}
+
+.call-btn {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s, background 0.2s;
+}
+
+.call-btn:hover {
+  transform: scale(1.1);
+}
+
+.call-btn.active {
+  background: #ff4444;
+  color: white;
+}
+
+.end-btn {
+  background: #ff4444;
+  color: white;
+}
+
+.accept-btn {
+  background: #4caf50;
+  color: white;
+  width: 80px;
+  border-radius: 30px;
+  font-size: 16px;
+}
+
+.reject-btn {
+  background: #ff4444;
+  color: white;
+  width: 80px;
+  border-radius: 30px;
+  font-size: 16px;
+}
+
+/* Mobile responsive for video call */
+@media (max-width: 480px) {
+  .local-video {
+    width: 100px;
+    height: 80px;
+    bottom: 10px;
+    right: 10px;
+  }
+
+  .call-btn {
+    width: 50px;
+    height: 50px;
+    font-size: 20px;
+  }
+
+  .accept-btn,
+  .reject-btn {
+    width: 70px;
+    font-size: 14px;
+  }
+
+  .video-call-header {
+    padding: 10px 15px;
+    font-size: 16px;
+  }
+}

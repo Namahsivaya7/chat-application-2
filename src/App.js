@@ -1,22 +1,22 @@
 import './App.css';
-import PrivateChat from './components/PrivateChat';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-// import PrivateChat from './pages/PrivateChat';
 import LoginSignup from './components/LoginSignup';
+import UsersList from './components/UsersList';
+import ChatRoom from './components/ChatRoom';
 import EmptyPage from './components/EmptyPage';
 
 function App() {
   return (
     <div className="App">
-     {/* <ChatUi/> */}
-     {/* <PrivateChat/> */}
       <Router>
-      <Routes>
-        <Route path="/" element={<LoginSignup />} />
-        <Route path="/chat" element={<PrivateChat />} />
-      <Route path='empty-page' element={<EmptyPage/>}/>
-      </Routes>
-    </Router>
+        <Routes>
+          <Route path="/" element={<LoginSignup />} />
+          <Route path="/users" element={<UsersList />} />
+          <Route path="/chat/:username" element={<ChatRoom />} />
+          <Route path="/chat" element={<UsersList />} />
+          <Route path="/empty-page" element={<EmptyPage />} />
+        </Routes>
+      </Router>
     </div>
   );
 }

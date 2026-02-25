@@ -472,7 +472,7 @@ function PrivateChat() {
             const showDateSeparator = currentDateKey && currentDateKey !== prevDateKey;
             
             return (
-              <div key={`${msg.from}-${msg.time}-${i}`}>
+              <div key={`${msg.from}-${msg.time}-${i}`} style={{ display: 'flex', flexDirection: 'column' }}>
                 {showDateSeparator && (
                   <div className="date-separator">
                     <span>{getDateLabel(msg.date)}</span>

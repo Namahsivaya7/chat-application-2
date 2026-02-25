@@ -13,7 +13,7 @@ function LoginSignup() {
   useEffect(() => {
     const currentUser = localStorage.getItem("chat_username");
     if (currentUser) {
-      navigate('/chat');
+      navigate('/users');
     }
   }, [navigate]);
 
@@ -49,7 +49,7 @@ function LoginSignup() {
         if (res.success) {
           localStorage.setItem('chat_username', trimmedUsername);
           socket.emit("register_user_socket", { username: trimmedUsername });
-          navigate('/chat');
+          navigate('/users');
         } else {
           alert(res.message);
         }
