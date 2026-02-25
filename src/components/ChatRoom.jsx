@@ -158,7 +158,7 @@ function ChatRoom() {
     const handleUserListUpdate = (userArray) => {
       const user = userArray.find((u) => u.username === chatUser);
       if (user) {
-        const isOnline = user.online && user.isInChatPage;
+        const isOnline = user.online;
         
         setUserStatus((prev) => {
           // If user just went offline (was online, now offline), use current time as last seen
