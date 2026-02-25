@@ -1,5 +1,5 @@
 import './App.css';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import LoginSignup from './components/LoginSignup';
 import UsersList from './components/UsersList';
 import ChatRoom from './components/ChatRoom';
@@ -15,6 +15,7 @@ function App() {
           <Route path="/chat/:username" element={<ChatRoom />} />
           <Route path="/chat" element={<UsersList />} />
           <Route path="/empty-page" element={<EmptyPage />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Router>
     </div>

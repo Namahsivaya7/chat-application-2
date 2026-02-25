@@ -407,11 +407,7 @@ function ChatRoom() {
     setIncomingCall(null);
   };
 
-  if (!loggedInUser || !chatUser) {
-    return null;
-  }
-
-  if (isLoading || !socketConnected) {
+  if (!loggedInUser || !chatUser || isLoading || !socketConnected) {
     return (
       <div className="chatroom-container">
         <div style={{ 
@@ -424,7 +420,10 @@ function ChatRoom() {
           gap: "10px"
         }}>
           <div className="loading-spinner"></div>
-          <span>{socketConnected ? "Loading chat..." : "Connecting..."}</span>
+          <span>
+            {!loggedInUser ? "Checking login..." : 
+             !socketConnected ? "Connecting..." : "Loading chat..."}
+          </span>
         </div>
       </div>
     );
