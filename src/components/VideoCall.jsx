@@ -56,27 +56,37 @@ function VideoCall({ localUser, remoteUser, onClose, isIncoming, incomingOffer }
 
   // Play ringtone for incoming calls, ringback for outgoing calls
   useEffect(() => {
-    const playRingtone = () => {
-      if (isIncoming && callStatus === "incoming") {
-        ringtoneRef.current = new Audio(RINGTONE_URL);
-        ringtoneRef.current.loop = true;
-        ringtoneRef.current.volume = 0.7;
-        ringtoneRef.current.play().catch(() => {});
+    // Only play ringtone for incoming calls, and only once
+    if (isIncoming && callStatus === "incoming" && !ringtoneRef.current) {
+      ringtoneRef.current = new Audio(RINGTONE_URL);
+      ringtoneRef.current.loop = true;
+      ringtoneRef.current.volume = 0.7;
+      ringtoneRef.current.play().catch(() => {});
+    }
+
+    // Only play ringback for outgoing calls, and only once
+    if (!isIncoming && callStatus === "calling" && !ringbackRef.current) {
+      ringbackRef.current = new Audio(RINGBACK_URL);
+      ringbackRef.current.loop = true;
+      ringbackRef.current.volume = 0.5;
+      ringbackRef.current.play().catch(() => {});
+    }
+
+    // Stop tones when call status changes to connected/connecting/disconnected
+    if (callStatus === "connected" || callStatus === "connecting" || callStatus === "disconnected") {
+      if (ringtoneRef.current) {
+        ringtoneRef.current.pause();
+        ringtoneRef.current = null;
       }
-    };
-
-    const playRingback = () => {
-      if (!isIncoming && callStatus === "calling") {
-        ringbackRef.current = new Audio(RINGBACK_URL);
-        ringbackRef.current.loop = true;
-        ringbackRef.current.volume = 0.5;
-        ringbackRef.current.play().catch(() => {});
+      if (ringbackRef.current) {
+        ringbackRef.current.pause();
+        ringbackRef.current = null;
       }
-    };
+    }
+  }, [isIncoming, callStatus]);
 
-    playRingtone();
-    playRingback();
-
+  // Cleanup on unmount
+  useEffect(() => {
     return () => {
       if (ringtoneRef.current) {
         ringtoneRef.current.pause();
@@ -87,21 +97,7 @@ function VideoCall({ localUser, remoteUser, onClose, isIncoming, incomingOffer }
         ringbackRef.current = null;
       }
     };
-  }, [isIncoming, callStatus]);
-
-  // Stop ringtone/ringback when call connects or ends
-  useEffect(() => {
-    if (callStatus === "connected" || callStatus === "disconnected") {
-      if (ringtoneRef.current) {
-        ringtoneRef.current.pause();
-        ringtoneRef.current = null;
-      }
-      if (ringbackRef.current) {
-        ringbackRef.current.pause();
-        ringbackRef.current = null;
-      }
-    }
-  }, [callStatus]);
+  }, []);
 
   useEffect(() => {
     if (isInitializedRef.current) return;
@@ -201,6 +197,12 @@ function VideoCall({ localUser, remoteUser, onClose, isIncoming, incomingOffer }
 
     const handleAnswer = async (data) => {
       if (data.from === remoteUser && peerConnectionRef.current) {
+        // Stop ringback tone immediately when answer is received
+        if (ringbackRef.current) {
+          ringbackRef.current.pause();
+          ringbackRef.current = null;
+        }
+        
         try {
           if (peerConnectionRef.current.signalingState === "have-local-offer") {
             await peerConnectionRef.current.setRemoteDescription(
