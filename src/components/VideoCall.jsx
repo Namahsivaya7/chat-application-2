@@ -261,6 +261,22 @@ function VideoCall({ localUser, remoteUser, onClose, isIncoming, incomingOffer }
       }
     };
 
+    const handleCallTimeout = (data) => {
+      if (data.to === remoteUser || data.from === remoteUser) {
+        alert(data.reason || "Call timed out - no answer");
+        cleanup();
+        onClose();
+      }
+    };
+
+    const handleCallUnavailable = (data) => {
+      if (data.to === remoteUser) {
+        alert(data.reason || `${remoteUser} is unavailable`);
+        cleanup();
+        onClose();
+      }
+    };
+
     const cleanup = () => {
       if (localStreamRef.current) {
         localStreamRef.current.getTracks().forEach((track) => track.stop());
@@ -278,6 +294,8 @@ function VideoCall({ localUser, remoteUser, onClose, isIncoming, incomingOffer }
     socket.on("ice_candidate", handleIceCandidate);
     socket.on("video_call_ended", handleCallEnded);
     socket.on("video_call_rejected", handleCallRejected);
+    socket.on("video_call_timeout", handleCallTimeout);
+    socket.on("video_call_unavailable", handleCallUnavailable);
 
     // Defer heavy media operations to allow UI to paint first
     const timeoutId = setTimeout(() => {
@@ -294,6 +312,8 @@ function VideoCall({ localUser, remoteUser, onClose, isIncoming, incomingOffer }
       socket.off("ice_candidate", handleIceCandidate);
       socket.off("video_call_ended", handleCallEnded);
       socket.off("video_call_rejected", handleCallRejected);
+      socket.off("video_call_timeout", handleCallTimeout);
+      socket.off("video_call_unavailable", handleCallUnavailable);
       cleanup();
     };
   }, [isIncoming, localUser, remoteUser, onClose, incomingOffer]);

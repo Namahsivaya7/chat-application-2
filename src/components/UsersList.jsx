@@ -107,10 +107,21 @@ function UsersList() {
       ringtoneRef.current.play().catch(() => {});
     };
 
+    const handleCallTimeout = (data) => {
+      // Stop ringtone if call times out
+      if (ringtoneRef.current) {
+        ringtoneRef.current.pause();
+        ringtoneRef.current = null;
+      }
+      setIncomingCall(null);
+    };
+
     socket.on("video_call_offer", handleIncomingCall);
+    socket.on("video_call_timeout", handleCallTimeout);
 
     return () => {
       socket.off("video_call_offer", handleIncomingCall);
+      socket.off("video_call_timeout", handleCallTimeout);
       if (ringtoneRef.current) {
         ringtoneRef.current.pause();
         ringtoneRef.current = null;

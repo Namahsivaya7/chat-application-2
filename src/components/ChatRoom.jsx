@@ -24,12 +24,12 @@ const MONTH_NAMES = [
 ];
 
 const getDateLabel = (dateStr) => {
-  if (!dateStr) return null;
+  if (!dateStr) return "Today";
 
   const now = new Date();
   const msgDate = new Date(dateStr);
 
-  if (isNaN(msgDate.getTime())) return null;
+  if (isNaN(msgDate.getTime())) return "Today";
 
   const isToday = msgDate.toDateString() === now.toDateString();
   const isYesterday =
@@ -49,9 +49,9 @@ const getDateLabel = (dateStr) => {
 };
 
 const getDateKey = (dateStr) => {
-  if (!dateStr) return null;
+  if (!dateStr) return new Date().toDateString();
   const msgDate = new Date(dateStr);
-  if (isNaN(msgDate.getTime())) return null;
+  if (isNaN(msgDate.getTime())) return new Date().toDateString();
   return msgDate.toDateString();
 };
 
@@ -175,13 +175,40 @@ function ChatRoom() {
         `https://chat-application-server-2.onrender.com/messages/${loggedInUser}/${chatUser}`,
       )
       .then((res) => {
-        const history = res.data.map((msg) => ({
-          from: msg.from,
-          message: msg.message,
-          time: msg.time,
-          date: msg.date || msg.createdAt || null,
-          seen: msg.seen || false,
-        }));
+        const history = res.data.map((msg, index) => {
+          // Try to get date from various possible fields
+          let msgDate = msg.date || msg.createdAt || msg.timestamp || msg.created_at;
+          
+          // If date is still null but we have _id (MongoDB ObjectId), extract date from it
+          if (!msgDate && msg._id) {
+            try {
+              // Handle both string and object _id formats
+              const idStr = typeof msg._id === 'string' ? msg._id : msg._id.toString();
+              if (idStr && idStr.length >= 8) {
+                const timestamp = parseInt(idStr.substring(0, 8), 16) * 1000;
+                if (!isNaN(timestamp) && timestamp > 0) {
+                  msgDate = new Date(timestamp).toISOString();
+                }
+              }
+            } catch {
+              // Fallback: use current date minus index to maintain order
+              msgDate = new Date(Date.now() - (res.data.length - index) * 1000).toISOString();
+            }
+          }
+          
+          // Final fallback - use current date
+          if (!msgDate) {
+            msgDate = new Date().toISOString();
+          }
+          
+          return {
+            from: msg.from,
+            message: msg.message,
+            time: msg.time,
+            date: msgDate,
+            seen: msg.seen || false,
+          };
+        });
 
         setMessages(history);
         socket.emit("message-seen", { from: chatUser, to: loggedInUser });
@@ -418,14 +445,25 @@ function ChatRoom() {
       }
       ringtoneRef.current = new Audio(RINGTONE_URL);
       ringtoneRef.current.loop = true;
-      ringtoneRef.current.volume = 1.0;
+      ringtoneRef.current.volume = 0.7;
       ringtoneRef.current.play().catch(() => {});
     };
 
+    const handleCallTimeout = (data) => {
+      // Stop ringtone if call times out
+      if (ringtoneRef.current) {
+        ringtoneRef.current.pause();
+        ringtoneRef.current = null;
+      }
+      setIncomingCall(null);
+    };
+
     socket.on("video_call_offer", handleIncomingCall);
+    socket.on("video_call_timeout", handleCallTimeout);
 
     return () => {
       socket.off("video_call_offer", handleIncomingCall);
+      socket.off("video_call_timeout", handleCallTimeout);
       if (ringtoneRef.current) {
         ringtoneRef.current.pause();
         ringtoneRef.current = null;
@@ -521,8 +559,8 @@ function ChatRoom() {
         {messages.map((msg, i, arr) => {
           const currentDateKey = getDateKey(msg.date);
           const prevDateKey = i > 0 ? getDateKey(arr[i - 1].date) : null;
-          const showDateSeparator =
-            currentDateKey && currentDateKey !== prevDateKey;
+          // Show separator if: we have a date AND (it's the first message OR date changed from previous)
+          const showDateSeparator = currentDateKey && (i === 0 || currentDateKey !== prevDateKey);
 
           return (
             <div
