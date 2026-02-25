@@ -6,8 +6,39 @@ const ICE_SERVERS = {
   iceServers: [
     { urls: "stun:stun.l.google.com:19302" },
     { urls: "stun:stun1.l.google.com:19302" },
+    { urls: "stun:stun2.l.google.com:19302" },
+    { urls: "stun:stun3.l.google.com:19302" },
+    { urls: "stun:stun4.l.google.com:19302" },
+    {
+      urls: "turn:openrelay.metered.ca:80",
+      username: "openrelayproject",
+      credential: "openrelayproject",
+    },
+    {
+      urls: "turn:openrelay.metered.ca:443",
+      username: "openrelayproject",
+      credential: "openrelayproject",
+    },
   ],
+  iceCandidatePoolSize: 10,
 };
+
+const VIDEO_CONSTRAINTS = {
+  video: {
+    width: { ideal: 1280, max: 1920 },
+    height: { ideal: 720, max: 1080 },
+    frameRate: { ideal: 30, max: 60 },
+    facingMode: "user",
+  },
+  audio: {
+    echoCancellation: true,
+    noiseSuppression: true,
+    autoGainControl: true,
+  },
+};
+
+const RINGTONE_URL = "https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3";
+const RINGBACK_URL = "https://assets.mixkit.co/active_storage/sfx/1361/1361-preview.mp3";
 
 function VideoCall({ localUser, remoteUser, onClose, isIncoming, incomingOffer }) {
   const [callStatus, setCallStatus] = useState(isIncoming ? "incoming" : "initializing");
@@ -19,6 +50,58 @@ function VideoCall({ localUser, remoteUser, onClose, isIncoming, incomingOffer }
   const peerConnectionRef = useRef(null);
   const localStreamRef = useRef(null);
   const isInitializedRef = useRef(false);
+  const ringtoneRef = useRef(null);
+  const ringbackRef = useRef(null);
+  const pendingCandidatesRef = useRef([]);
+
+  // Play ringtone for incoming calls, ringback for outgoing calls
+  useEffect(() => {
+    const playRingtone = () => {
+      if (isIncoming && callStatus === "incoming") {
+        ringtoneRef.current = new Audio(RINGTONE_URL);
+        ringtoneRef.current.loop = true;
+        ringtoneRef.current.volume = 0.7;
+        ringtoneRef.current.play().catch(() => {});
+      }
+    };
+
+    const playRingback = () => {
+      if (!isIncoming && callStatus === "calling") {
+        ringbackRef.current = new Audio(RINGBACK_URL);
+        ringbackRef.current.loop = true;
+        ringbackRef.current.volume = 0.5;
+        ringbackRef.current.play().catch(() => {});
+      }
+    };
+
+    playRingtone();
+    playRingback();
+
+    return () => {
+      if (ringtoneRef.current) {
+        ringtoneRef.current.pause();
+        ringtoneRef.current = null;
+      }
+      if (ringbackRef.current) {
+        ringbackRef.current.pause();
+        ringbackRef.current = null;
+      }
+    };
+  }, [isIncoming, callStatus]);
+
+  // Stop ringtone/ringback when call connects or ends
+  useEffect(() => {
+    if (callStatus === "connected" || callStatus === "disconnected") {
+      if (ringtoneRef.current) {
+        ringtoneRef.current.pause();
+        ringtoneRef.current = null;
+      }
+      if (ringbackRef.current) {
+        ringbackRef.current.pause();
+        ringbackRef.current = null;
+      }
+    }
+  }, [callStatus]);
 
   useEffect(() => {
     if (isInitializedRef.current) return;
@@ -26,10 +109,15 @@ function VideoCall({ localUser, remoteUser, onClose, isIncoming, incomingOffer }
 
     const getMedia = async () => {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: true,
-          audio: true,
-        });
+        let stream;
+        try {
+          stream = await navigator.mediaDevices.getUserMedia(VIDEO_CONSTRAINTS);
+        } catch {
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: true,
+            audio: true,
+          });
+        }
         localStreamRef.current = stream;
         if (localVideoRef.current) {
           localVideoRef.current.srcObject = stream;
@@ -118,6 +206,7 @@ function VideoCall({ localUser, remoteUser, onClose, isIncoming, incomingOffer }
             await peerConnectionRef.current.setRemoteDescription(
               new RTCSessionDescription(data.answer)
             );
+            await processPendingCandidates();
             setCallStatus("connected");
           }
         } catch (err) {
@@ -133,9 +222,26 @@ function VideoCall({ localUser, remoteUser, onClose, isIncoming, incomingOffer }
             await peerConnectionRef.current.addIceCandidate(
               new RTCIceCandidate(data.candidate)
             );
+          } else {
+            pendingCandidatesRef.current.push(data.candidate);
           }
         } catch (err) {
           console.error("Error adding ICE candidate:", err);
+        }
+      }
+    };
+
+    const processPendingCandidates = async () => {
+      if (!peerConnectionRef.current?.remoteDescription) return;
+      
+      while (pendingCandidatesRef.current.length > 0) {
+        const candidate = pendingCandidatesRef.current.shift();
+        try {
+          await peerConnectionRef.current.addIceCandidate(
+            new RTCIceCandidate(candidate)
+          );
+        } catch (err) {
+          console.error("Error adding queued ICE candidate:", err);
         }
       }
     };
@@ -164,6 +270,7 @@ function VideoCall({ localUser, remoteUser, onClose, isIncoming, incomingOffer }
         peerConnectionRef.current.close();
         peerConnectionRef.current = null;
       }
+      pendingCandidatesRef.current = [];
     };
 
     // Setup socket listeners immediately (using server's event names)
@@ -193,6 +300,11 @@ function VideoCall({ localUser, remoteUser, onClose, isIncoming, incomingOffer }
 
   const acceptCall = async () => {
     try {
+      if (ringtoneRef.current) {
+        ringtoneRef.current.pause();
+        ringtoneRef.current = null;
+      }
+
       if (peerConnectionRef.current) {
         peerConnectionRef.current.close();
       }
@@ -210,6 +322,7 @@ function VideoCall({ localUser, remoteUser, onClose, isIncoming, incomingOffer }
         if (remoteVideoRef.current) {
           remoteVideoRef.current.srcObject = event.streams[0];
         }
+        setCallStatus("connected");
       };
 
       pc.onicecandidate = (event) => {
@@ -223,12 +336,24 @@ function VideoCall({ localUser, remoteUser, onClose, isIncoming, incomingOffer }
       };
 
       pc.oniceconnectionstatechange = () => {
-        if (pc.iceConnectionState === "disconnected" || pc.iceConnectionState === "failed") {
+        if (pc.iceConnectionState === "connected" || pc.iceConnectionState === "completed") {
+          setCallStatus("connected");
+        } else if (pc.iceConnectionState === "disconnected" || pc.iceConnectionState === "failed") {
           setCallStatus("disconnected");
         }
       };
 
       await pc.setRemoteDescription(new RTCSessionDescription(incomingOffer));
+      
+      while (pendingCandidatesRef.current.length > 0) {
+        const candidate = pendingCandidatesRef.current.shift();
+        try {
+          await pc.addIceCandidate(new RTCIceCandidate(candidate));
+        } catch (err) {
+          console.error("Error adding queued candidate:", err);
+        }
+      }
+
       const answer = await pc.createAnswer();
       await pc.setLocalDescription(answer);
 
@@ -238,7 +363,7 @@ function VideoCall({ localUser, remoteUser, onClose, isIncoming, incomingOffer }
         answer: pc.localDescription,
       });
 
-      setCallStatus("connected");
+      setCallStatus("connecting");
     } catch (err) {
       console.error("Error accepting call:", err);
       alert("Error accepting call");
@@ -300,6 +425,7 @@ function VideoCall({ localUser, remoteUser, onClose, isIncoming, incomingOffer }
             {callStatus === "initializing" && "Initializing..."}
             {callStatus === "calling" && "Calling..."}
             {callStatus === "incoming" && "Incoming call..."}
+            {callStatus === "connecting" && "Connecting..."}
             {callStatus === "connected" && "Connected"}
             {callStatus === "disconnected" && "Disconnected"}
           </span>
