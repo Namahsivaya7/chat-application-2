@@ -2,11 +2,13 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import "../App.css";
 import socket from "../socket";
+import VideoCall from "./VideoCall";
 
 function UsersList() {
   const loggedInUser = localStorage.getItem("chat_username");
   const [users, setUsers] = useState([]);
   const [unreadCountMap, setUnreadCountMap] = useState({});
+  const [incomingCall, setIncomingCall] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -86,6 +88,23 @@ function UsersList() {
       Notification.requestPermission();
     }
   }, []);
+
+  // Handle incoming video calls
+  useEffect(() => {
+    const handleIncomingCall = (data) => {
+      setIncomingCall(data);
+    };
+
+    socket.on("video_call_offer", handleIncomingCall);
+
+    return () => {
+      socket.off("video_call_offer", handleIncomingCall);
+    };
+  }, []);
+
+  const closeVideoCall = () => {
+    setIncomingCall(null);
+  };
 
   useEffect(() => {
     if (loggedInUser) {
@@ -213,6 +232,16 @@ function UsersList() {
           })
         )}
       </div>
+
+      {incomingCall && (
+        <VideoCall
+          localUser={loggedInUser}
+          remoteUser={incomingCall.from}
+          onClose={closeVideoCall}
+          isIncoming={true}
+          incomingOffer={incomingCall.offer}
+        />
+      )}
     </div>
   );
 }

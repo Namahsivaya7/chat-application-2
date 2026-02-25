@@ -66,7 +66,7 @@ function VideoCall({ localUser, remoteUser, onClose, isIncoming, incomingOffer }
 
       pc.onicecandidate = (event) => {
         if (event.candidate) {
-          socket.emit("video-call-ice-candidate", {
+          socket.emit("ice_candidate", {
             from: localUser,
             to: remoteUser,
             candidate: event.candidate,
@@ -93,7 +93,11 @@ function VideoCall({ localUser, remoteUser, onClose, isIncoming, incomingOffer }
         const offer = await pc.createOffer();
         await pc.setLocalDescription(offer);
 
-        socket.emit("video-call-offer", {
+        if (!socket.connected) {
+          socket.connect();
+        }
+
+        socket.emit("video_call_offer", {
           from: localUser,
           to: remoteUser,
           offer: pc.localDescription,
@@ -162,23 +166,27 @@ function VideoCall({ localUser, remoteUser, onClose, isIncoming, incomingOffer }
       }
     };
 
-    // Initialize
-    if (isIncoming) {
-      getMedia();
-    } else {
-      startOutgoingCall();
-    }
+    // Setup socket listeners immediately (using server's event names)
+    socket.on("video_call_answer", handleAnswer);
+    socket.on("ice_candidate", handleIceCandidate);
+    socket.on("video_call_ended", handleCallEnded);
+    socket.on("video_call_rejected", handleCallRejected);
 
-    socket.on("video-call-answer", handleAnswer);
-    socket.on("video-call-ice-candidate", handleIceCandidate);
-    socket.on("video-call-ended", handleCallEnded);
-    socket.on("video-call-rejected", handleCallRejected);
+    // Defer heavy media operations to allow UI to paint first
+    const timeoutId = setTimeout(() => {
+      if (isIncoming) {
+        getMedia();
+      } else {
+        startOutgoingCall();
+      }
+    }, 100);
 
     return () => {
-      socket.off("video-call-answer", handleAnswer);
-      socket.off("video-call-ice-candidate", handleIceCandidate);
-      socket.off("video-call-ended", handleCallEnded);
-      socket.off("video-call-rejected", handleCallRejected);
+      clearTimeout(timeoutId);
+      socket.off("video_call_answer", handleAnswer);
+      socket.off("ice_candidate", handleIceCandidate);
+      socket.off("video_call_ended", handleCallEnded);
+      socket.off("video_call_rejected", handleCallRejected);
       cleanup();
     };
   }, [isIncoming, localUser, remoteUser, onClose, incomingOffer]);
@@ -206,7 +214,7 @@ function VideoCall({ localUser, remoteUser, onClose, isIncoming, incomingOffer }
 
       pc.onicecandidate = (event) => {
         if (event.candidate) {
-          socket.emit("video-call-ice-candidate", {
+          socket.emit("ice_candidate", {
             from: localUser,
             to: remoteUser,
             candidate: event.candidate,
@@ -224,7 +232,7 @@ function VideoCall({ localUser, remoteUser, onClose, isIncoming, incomingOffer }
       const answer = await pc.createAnswer();
       await pc.setLocalDescription(answer);
 
-      socket.emit("video-call-answer", {
+      socket.emit("video_call_answer", {
         from: localUser,
         to: remoteUser,
         answer: pc.localDescription,
@@ -239,7 +247,7 @@ function VideoCall({ localUser, remoteUser, onClose, isIncoming, incomingOffer }
   };
 
   const rejectCall = () => {
-    socket.emit("video-call-rejected", {
+    socket.emit("video_call_reject", {
       from: localUser,
       to: remoteUser,
     });
@@ -250,7 +258,7 @@ function VideoCall({ localUser, remoteUser, onClose, isIncoming, incomingOffer }
   };
 
   const endCall = () => {
-    socket.emit("video-call-ended", {
+    socket.emit("video_call_end", {
       from: localUser,
       to: remoteUser,
     });
