@@ -37,8 +37,8 @@ const VIDEO_CONSTRAINTS = {
   },
 };
 
-const RINGTONE_URL = "https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3";
-const RINGBACK_URL = "https://assets.mixkit.co/active_storage/sfx/1361/1361-preview.mp3";
+const RINGBACK_URL = "https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3";
+const RINGTONE_URL = "https://assets.mixkit.co/active_storage/sfx/1361/1361-preview.mp3";
 
 function VideoCall({ localUser, remoteUser, onClose, isIncoming, incomingOffer }) {
   const [callStatus, setCallStatus] = useState(isIncoming ? "incoming" : "initializing");
