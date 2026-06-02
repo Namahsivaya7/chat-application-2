@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import socket from "../socket";
 import "../App.css";
+import { Camera, CameraOff, Mic, MicOff } from "lucide-react";
 
 const ICE_SERVERS = {
   iceServers: [
@@ -484,13 +485,13 @@ function VideoCall({ localUser, remoteUser, onClose, isIncoming, incomingOffer }
               className={`call-btn ${isMuted ? "active" : ""}`}
               onClick={toggleMute}
             >
-              {isMuted ? "🔇" : "🎤"}
+              {isMuted ? <MicOff /> : <Mic />}
             </button>
             <button
               className={`call-btn ${isVideoOff ? "active" : ""}`}
               onClick={toggleVideo}
             >
-              {isVideoOff ? "📷" : "🎥"}
+              {isVideoOff ? <CameraOff /> : <Camera />}
             </button>
             <button className="call-btn end-btn" onClick={endCall}>
               End
